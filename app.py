@@ -70,6 +70,10 @@ AZURE_COSMOSDB_ACCOUNT = os.environ.get("AZURE_COSMOSDB_ACCOUNT")
 AZURE_COSMOSDB_CONVERSATIONS_CONTAINER = os.environ.get("AZURE_COSMOSDB_CONVERSATIONS_CONTAINER")
 AZURE_COSMOSDB_ACCOUNT_KEY = os.environ.get("AZURE_COSMOSDB_ACCOUNT_KEY")
 
+# Speech sdk auth token keys
+SPEECH_API_KEY = os.environ.get('SPEECH_KEY')
+SPEECH_API_REGION = os.environ.get('SPEECH_REGION')
+
 # Initialize a CosmosDB client with AAD auth and containers
 cosmos_conversation_client = None
 if AZURE_COSMOSDB_DATABASE and AZURE_COSMOSDB_ACCOUNT and AZURE_COSMOSDB_CONVERSATIONS_CONTAINER:
@@ -588,6 +592,26 @@ def ensure_cosmos():
         return jsonify({"error": "CosmosDB is not working"}), 500
 
     return jsonify({"message": "CosmosDB is configured and working"}), 200
+
+@app.route('/api/get-speech-token', methods=['GET'])
+def get_speech_token():
+
+    if SPEECH_API_KEY == 'paste-your-speech-key-here' or SPEECH_API_REGION == 'paste-your-speech-region-here':
+        return 'You forgot to add your speech key or region to the .env file.', 400
+    else:
+        headers = {
+            'Ocp-Apim-Subscription-Key': SPEECH_API_KEY,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+
+        try:
+            token_response = requests.post(
+                f'https://{SPEECH_API_REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken',
+                headers=headers
+            )
+            return jsonify({'token': token_response.text, 'region': SPEECH_API_REGION})
+        except:
+            return 'There was an error authorizing your speech key.', 401
 
 
 def generate_title(conversation_messages):

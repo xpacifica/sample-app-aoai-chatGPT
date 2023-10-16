@@ -11,7 +11,7 @@
 }
 
 .questionInputTextArea {
-    width: 100%;
+    width: 80%;
     line-height: 40px;
     margin-top: 10px;
     margin-bottom: 10px;
@@ -19,10 +19,22 @@
     margin-right: 12px;
 }
 
+.dropdownLanguageSelector {
+    position: absolute;
+    right: 59px;
+    bottom: 21px;
+}
+
 .questionInputSendButtonContainer {
     position: absolute;
     right: 24px;
     bottom: 20px;
+}
+
+.questionInputSpeechButtonContainer {
+    position: absolute;
+    right: 24px;
+    bottom: 72px;
 }
 
 .questionInputSendButton {
@@ -53,4 +65,24 @@
     cursor: pointer;
     width: 27px;
     height: 30px;
+}
+
+@media (max-width: 800px) {
+    .questionInputSendButtonContainer {
+        position: absolute;
+        right: 16px;
+        bottom: 20px;
+    }
+
+    .questionInputSpeechButtonContainer {
+        position: absolute;
+        right: 15px;
+        bottom: 72px;
+    }
+}
+
+@media (max-width: 920px) {
+    .questionInputContainer {
+        height: 140px;
+    }
 }

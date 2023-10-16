@@ -1,10 +1,10 @@
 import { Outlet, Link } from "react-router-dom";
 import styles from "./Layout.module.css";
 import Azure from "../../assets/Azure.svg";
-import { CopyRegular, ShareRegular } from "@fluentui/react-icons";
-import { CommandBarButton, Dialog, Stack, TextField, ICommandBarStyles, IButtonStyles, DefaultButton  } from "@fluentui/react";
+import { CopyRegular } from "@fluentui/react-icons";
+import { Dialog, Stack, TextField, ICommandBarStyles, IButtonStyles, DefaultButton  } from "@fluentui/react";
 import { useContext, useEffect, useState } from "react";
-import { HistoryButton, ShareButton } from "../../components/common/Button";
+import { ShareButton } from "../../components/common/Button";
 import { AppStateContext } from "../../state/AppProvider";
 import { CosmosDBStatus } from "../../api";
 
@@ -54,10 +54,6 @@ const Layout = () => {
         setCopyClicked(true);
     };
 
-    const handleHistoryClick = () => {
-        appStateContext?.dispatch({ type: 'TOGGLE_CHAT_HISTORY' })
-    };
-
     useEffect(() => {
         if (copyClicked) {
             setCopyText("Copied URL");
@@ -83,10 +79,7 @@ const Layout = () => {
                         </Link>
                     </Stack>
                     <Stack horizontal tokens={{ childrenGap: 4 }}>
-                            {(appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) && 
-                                <HistoryButton onClick={handleHistoryClick} text={appStateContext?.state?.isChatHistoryOpen ? "Hide chat history" : "Show chat history"}/>    
-                            }
-                            <ShareButton onClick={handleShareClick} />
+                        <ShareButton onClick={handleShareClick} />
                     </Stack>
 
                 </Stack>

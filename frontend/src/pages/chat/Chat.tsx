@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useContext, useLayoutEffect } from "react";
 import { CommandBarButton, IconButton, Dialog, DialogType, Stack } from "@fluentui/react";
-import { DismissRegular, SquareRegular, ShieldLockRegular, ErrorCircleRegular } from "@fluentui/react-icons";
+import { ShieldLockRegular, ErrorCircleRegular, Speaker224Regular, Stop24Filled } from "@fluentui/react-icons";
+import { isSafari, isFirefox, browserName } from 'react-device-detect';
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from 'remark-gfm'
@@ -31,6 +32,8 @@ import { QuestionInput } from "../../components/QuestionInput";
 import { ChatHistoryPanel } from "../../components/ChatHistory/ChatHistoryPanel";
 import { AppStateContext } from "../../state/AppProvider";
 import { useBoolean } from "@fluentui/react-hooks";
+import { getTokenOrRefresh, SpeechToken } from "../../api";
+import { AudioConfig, SpeakerAudioDestination, SpeechConfig, SpeechSynthesizer } from "microsoft-cognitiveservices-speech-sdk";
 
 const enum messageStatus {
     NotRunning = "Not Running",
@@ -52,6 +55,10 @@ const Chat = () => {
     const [clearingChat, setClearingChat] = useState<boolean>(false);
     const [hideErrorDialog, { toggle: toggleErrorDialog }] = useBoolean(true);
     const [errorMsg, setErrorMsg] = useState<ErrorMessage | null>()
+    const [isQuestionFromMic, setIsQuestionFromMic] = useState<boolean>(false);
+    const [voiceOutput, updateVoiceOutput] = useState<{speaker:SpeakerAudioDestination, muted:boolean}>({speaker: {} as SpeakerAudioDestination, muted:true});
+    const [selectedLanguage, setSelectedLanguage] = useState("en-US");
+    const [authenticationData, setAuthenticationData] = useState<SpeechToken | undefined>()
 
     const errorDialogContentProps = {
         type: DialogType.close,
@@ -67,16 +74,67 @@ const Chat = () => {
         styles: { main: { maxWidth: 450 } },
     }
 
+    const voiceToLanguageMap:Record<string,string> = {
+        'en-US': 'en-US-JennyMultilingualNeural',
+        'de-DE': 'de-DE-KatjaNeural',
+        'nl-NL': 'nl-NL-FennaNeural'
+    }
+
     useEffect(() => {
-        if(appStateContext?.state.isCosmosDBAvailable?.status === CosmosDBStatus.NotWorking && appStateContext.state.chatHistoryLoadingState === ChatHistoryLoadingState.Fail && hideErrorDialog){
-            let subtitle = `${appStateContext.state.isCosmosDBAvailable.status}. Please contact the site administrator.`
-            setErrorMsg({
-                title: "Chat history is not enabled",
-                subtitle: subtitle
-            })
-            toggleErrorDialog();
+        if(isQuestionFromMic && messages[messages.length - 1].role === 'assistant' && processMessages === messageStatus.Done){
+            handleTextToSpeech();
         }
-    }, [appStateContext?.state.isCosmosDBAvailable]);
+    },[messages]);
+
+    const handleTextToSpeech = async () => {
+
+        if(!authenticationData || authenticationData.authToken === null || authenticationData.region === undefined) throw new Error("Fetching auth token for Speech API failed");
+        const speechConfig = SpeechConfig.fromAuthorizationToken(
+            authenticationData.authToken,
+            authenticationData.region
+        );
+        
+        if (selectedLanguage !== 'auto') {
+            speechConfig.speechSynthesisLanguage = selectedLanguage; 
+            speechConfig.speechSynthesisVoiceName = voiceToLanguageMap[selectedLanguage];
+        }
+
+        const speaker = new SpeakerAudioDestination();
+        speaker.onAudioEnd = () => {
+            handleStopSpeakerOutput();
+        }
+
+        updateVoiceOutput({ speaker, muted:false });
+    
+        const audioConfig = AudioConfig.fromSpeakerOutput(speaker);
+    
+        const speechSynthesizer = new SpeechSynthesizer(speechConfig, audioConfig);
+    
+        const lastMessage = messages[messages.length - 1];
+    
+        speechSynthesizer.speakTextAsync(lastMessage.content, () => {speechSynthesizer.close();});
+        setIsQuestionFromMic(false);
+    };
+
+    useEffect(() => {
+        if(!authenticationData){
+            getTokenOrRefresh().then(res => setAuthenticationData(res)).catch(err => console.error(err));
+        }
+
+        const setAuthInterval = setInterval(() => {
+            getTokenOrRefresh().then(res => setAuthenticationData(res)).catch(err => console.error(err))
+        }, 8 * 60 * 1000);
+
+        return () => clearInterval(setAuthInterval);
+    }, []);
+
+    const handleStopSpeakerOutput = () => {
+        updateVoiceOutput( ({speaker}) => { 
+            speaker.pause();
+            speaker.close();
+            return {speaker, muted: true}; 
+        });
+    };
 
     const handleErrorDialogClose = () => {
         toggleErrorDialog()
@@ -140,8 +198,10 @@ const Chat = () => {
         let result = {} as ChatResponse;
         try {
             const response = await conversationApi(request, abortController.signal);
+
             if (response?.body) {
                 const reader = response.body.getReader();
+
                 let runningText = "";
 
                 while (true) {
@@ -150,6 +210,7 @@ const Chat = () => {
                     if (done) break;
 
                     var text = new TextDecoder("utf-8").decode(value);
+
                     const objects = text.split("\n");
                     objects.forEach((obj) => {
                         try {
@@ -177,7 +238,7 @@ const Chat = () => {
             
         } catch ( e )  {
             if (!abortController.signal.aborted) {
-                let errorMessage = "An error occurred. Please try again. If the problem persists, please contact the site administrator.";
+                let errorMessage = "An error has occurred, please contact your administrator.";
                 if (result.error?.message) {
                     errorMessage = result.error.message;
                 }
@@ -420,12 +481,15 @@ const Chat = () => {
     };
 
     const newChat = () => {
-        setProcessMessages(messageStatus.Processing)
+        //setProcessMessages(messageStatus.Processing)
         setMessages([])
         setIsCitationPanelOpen(false);
         setActiveCitation(undefined);
         appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: null });
-        setProcessMessages(messageStatus.Done)
+        if (!isFirefox && !isSafari) {
+            handleStopSpeakerOutput();
+        }
+        //setProcessMessages(messageStatus.Done)
     };
 
     const stopGenerating = () => {
@@ -494,7 +558,9 @@ const Chat = () => {
     }, [processMessages]);
 
     useEffect(() => {
-        getUserInfoList();
+        setShowAuthMessage(false);
+        // TODO: Un-comment the below line to enable authentication if there's an actual IDP setup ( if it's not a proof of concept)
+        //getUserInfoList();
     }, []);
 
     useLayoutEffect(() => {
@@ -562,11 +628,11 @@ const Chat = () => {
                                 {messages.map((answer, index) => (
                                     <>
                                         {answer.role === "user" ? (
-                                            <div className={styles.chatMessageUser} tabIndex={0}>
+                                            <div className={styles.chatMessageUser} tabIndex={0} key={answer.id}>
                                                 <div className={styles.chatMessageUserMessage}>{answer.content}</div>
                                             </div>
                                         ) : (
-                                            answer.role === "assistant" ? <div className={styles.chatMessageGpt}>
+                                            answer.role === "assistant" ? <div className={styles.chatMessageGpt} key={answer.id}>
                                                 <Answer
                                                     answer={{
                                                         answer: answer.content,
@@ -574,7 +640,7 @@ const Chat = () => {
                                                     }}
                                                     onCitationClicked={c => onShowCitation(c)}
                                                 />
-                                            </div> : answer.role === "error" ? <div className={styles.chatMessageError}>
+                                            </div> : answer.role === "error" ? <div className={styles.chatMessageError} key={answer.id}>
                                                 <Stack horizontal className={styles.chatMessageErrorContent}>
                                                     <ErrorCircleRegular className={styles.errorIcon} style={{color: "rgba(182, 52, 67, 1)"}} />
                                                     <span>Error</span>
@@ -589,7 +655,7 @@ const Chat = () => {
                                         <div className={styles.chatMessageGpt}>
                                             <Answer
                                                 answer={{
-                                                    answer: "Generating answer...",
+                                                    answer: "Waiting for response from the server......",
                                                     citations: []
                                                 }}
                                                 onCitationClicked={() => null}
@@ -606,18 +672,28 @@ const Chat = () => {
                                 <Stack 
                                     horizontal
                                     className={styles.stopGeneratingContainer}
+                                    aria-label="Stop generating"
+                                    tabIndex={0}
+                                    onKeyDown={e => e.key === "Enter" || e.key === " " ? stopGenerating() : null}
+                                    >
+                                        <span className={styles.stopGeneratingText} aria-hidden="true">Generating response....</span>
+                                </Stack>
+                            )}
+                            {!isLoading && !voiceOutput.muted && (
+                                <Stack 
+                                    horizontal
+                                    className={styles.stopGeneratingContainer}
                                     role="button"
                                     aria-label="Stop generating"
                                     tabIndex={0}
-                                    onClick={stopGenerating}
-                                    onKeyDown={e => e.key === "Enter" || e.key === " " ? stopGenerating() : null}
+                                    onClick={handleStopSpeakerOutput}
                                     >
-                                        <SquareRegular className={styles.stopGeneratingIcon} aria-hidden="true"/>
-                                        <span className={styles.stopGeneratingText} aria-hidden="true">Stop generating</span>
+                                        <Speaker224Regular/>
+                                        <Stop24Filled/>
                                 </Stack>
                             )}
                             <Stack>
-                                {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && <CommandBarButton
+                                {!disabledButton() && appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && <CommandBarButton
                                     role="button"
                                     styles={{ 
                                         icon: { 
@@ -632,29 +708,11 @@ const Chat = () => {
                                         }
                                     }}
                                     className={styles.newChatIcon}
-                                    iconProps={{ iconName: 'Add' }}
+                                    iconProps={{ iconName: 'Broom' }}
                                     onClick={newChat}
                                     disabled={disabledButton()}
                                     aria-label="start a new chat button"
                                 />}
-                                <CommandBarButton
-                                    role="button"
-                                    styles={{ 
-                                        icon: { 
-                                            color: '#FFFFFF',
-                                        },
-                                        root: {
-                                            color: '#FFFFFF',
-                                            background: disabledButton() ? "#BDBDBD" : "radial-gradient(109.81% 107.82% at 100.1% 90.19%, #0F6CBD 33.63%, #2D87C3 70.31%, #8DDDD8 100%)",
-                                            cursor: disabledButton() ? "" : "pointer"
-                                        },
-                                    }}
-                                    className={appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured ? styles.clearChatBroom : styles.clearChatBroomNoCosmos}
-                                    iconProps={{ iconName: 'Broom' }}
-                                    onClick={appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured ? clearChat : newChat}
-                                    disabled={disabledButton()}
-                                    aria-label="clear chat button"
-                                />
                                 <Dialog
                                     hidden={hideErrorDialog}
                                     onDismiss={handleErrorDialogClose}
@@ -664,10 +722,17 @@ const Chat = () => {
                                 </Dialog>
                             </Stack>
                             <QuestionInput
+                                selectedLanguage={selectedLanguage}
+                                onLanguageSelect={setSelectedLanguage}
                                 clearOnSend
-                                placeholder="Type a new question..."
+                                placeholder={isFirefox || isSafari ? `Type a new question...\n(Voice recognition is disabled due to a browser incompatibility issue with ${browserName})` : 'Type a new question or press the mic button & speak into the microphone...'}
                                 disabled={isLoading}
-                                onSend={(question, id) => {
+                                onSend={({question, id, fromMic}) => {
+                                    const { speaker, muted } = voiceOutput;
+                                    if (!muted && !!speaker.pause) {
+                                        voiceOutput.speaker.pause();
+                                    }
+                                    setIsQuestionFromMic(fromMic);
                                     appStateContext?.state.isCosmosDBAvailable?.cosmosDB ? makeApiRequestWithCosmosDB(question, id) : makeApiRequestWithoutCosmosDB(question, id)
                                 }}
                                 conversationId={appStateContext?.state.currentChat?.id ? appStateContext?.state.currentChat?.id : undefined}

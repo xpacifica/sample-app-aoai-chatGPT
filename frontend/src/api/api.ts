@@ -1,4 +1,4 @@
-import { UserInfo, ConversationRequest, Conversation, ChatMessage, CosmosDBHealth, CosmosDBStatus } from "./models";
+import { UserInfo, ConversationRequest, Conversation, ChatMessage, CosmosDBHealth, CosmosDBStatus, SpeechToken } from "./models";
 import { chatHistorySampleData } from "../constants/chatHistory";
 
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
@@ -297,3 +297,15 @@ export const historyEnsure = async (): Promise<CosmosDBHealth> => {
     return response;
 }
 
+export const getTokenOrRefresh = async (): Promise<SpeechToken> => {
+        const response = await fetch("/api/get-speech-token")
+        .then(async res => {
+            const respJson = await res.json();
+            return { authToken: respJson.token, region: respJson.region };
+        })
+        .catch((err) => {
+            console.log(err.response.data);
+            return { authToken: null, error: err.response.data };
+        })
+        return response;
+}

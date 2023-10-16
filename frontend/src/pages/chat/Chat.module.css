@@ -145,6 +145,8 @@
     max-width: 1028px;
     margin-bottom: 50px;
     margin-top: 8px;
+    margin-right: 22px;
+    min-width: 340px;
 }
 
 .clearChatBroom {
@@ -207,12 +209,13 @@
     padding: 5px 16px;
     gap: 4px;
     position: absolute;
-    width: 161px;
+    width: 181px;
     height: 32px;
-    left: calc(50% - 161px/2 + 25.8px);
+    left: 43%;
     bottom: 116px;
-    border: 1px solid #D1D1D1;
     border-radius: 16px;
+    background-color: #EDF5FD;
+    border: 1px solid black;
 }
 
 .stopGeneratingIcon {
@@ -222,7 +225,7 @@
 }
 
 .stopGeneratingText {
-    width: 103px;
+    width: 100%;
     height: 20px;
     font-style: normal;
     font-weight: 600;
@@ -230,7 +233,7 @@
     line-height: 20px;
     display: flex;
     align-items: center;
-    color: #242424;
+    color: blue;
     flex: none;
     order: 0;
     flex-grow: 0;
@@ -329,4 +332,38 @@ a {
 .viewSourceButton:hover {
     text-decoration: underline;
     cursor: pointer;
+}
+
+
+@media (max-width: 500px) {
+    .newChatIcon {
+        min-width: 32px;
+        min-height: 32px;
+        width: 32px;
+        height: 32px;
+        top: 87px;
+        left: 39px;
+    }
+}
+
+@media (min-width: 500px) and (max-width: 768px) {
+    .newChatIcon {
+        min-width: 32px;
+        min-height: 32px;
+        width: 32px;
+        height: 32px;
+        top: 87px;
+        left: 50px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 920px) {
+    .newChatIcon {
+        min-width: 32px;
+        min-height: 32px;
+        width: 32px;
+        height: 32px;
+        top: 87px;
+        left: 60px;
+    }
 }
