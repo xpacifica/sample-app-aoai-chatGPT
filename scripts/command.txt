@@ -1,0 +1,52 @@
+pwd
+brew tap azure/functions
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo;
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/prasantabhowmik/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/prasantabhowmik/.zprofile eval "$(/opt/homebrew/bin/brew shellenv)"
+brew tap azure/functions
+echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/prasantabhowmik/.zprofile
+echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/prasantabhowmik/.zprofile
+    eval "$(/opt/homebrew/bin/brew shellenv)
+
+
+
+
+
+
+
+
+
+
+exit
+
+quit
+
+
+
+pwd
+brew tap azure/functions
+cd /opt/
+ls
+cd homebrew/
+brew tap azure/functions
+ls
+cd bin
+brew tap azure/functions
+pwd
+ls -ltr
+./brew tap azure/functions
+brew install azure-functions-core-tools@4
+./brew install azure-functions-core-tools@4
+brew tap azure/azd && brew install azd
+./brew tap azure/azd && brew install azd
+./brew tap azure/azd && ./brew install azd
+./brew upgrade azd
+pwd
+cd
+pwd
+git
+pwd
+azd login
+azd init -t azure-search-openai-demo
+exit

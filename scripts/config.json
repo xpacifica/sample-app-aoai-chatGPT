@@ -1,14 +1,15 @@
 [
     {
-        "data_path": "<path to data>",
-        "location": "<azure region, e.g. 'westus2'>",
-        "subscription_id": "<subscription id>",
-        "resource_group": "<resource group name>",
-        "search_service_name": "<search service name to use or create>",
-        "index_name": "<index name to use or create>",
+        "data_path": "/Users/prasantabhowmik/Documents/GitHub/sample-app-aoai-chatGPT/data",
+        "location": "Sweden Central",
+        "subscription_id": "1357eda9-7c97-49a9-ba0a-ede14496cf4c",
+        "resource_group": "SALESDASHBOARD-TEST-AAAB",
+        "search_service_name": "cog-srch-aa",
+        "index_name": "cog-srch-bsp-cotechnician-indx",
         "chunk_size": 1024,
         "token_overlap": 128,
         "semantic_config_name": "default",
-        "language": "<Language to support for example use 'en' for English. Checked supported languages here under lucene - https://learn.microsoft.com/en-us/azure/search/index-add-language-analyzers"
+        "language": "en",
+        "vector_config_name": "default"
     }
 ]

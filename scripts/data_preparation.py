@@ -300,7 +300,7 @@ def upload_documents_to_index(service_name, subscription_id, resource_group, ind
                             f"To Debug: PLEASE CHECK chunk_size and upload_batch_size. \n Error Messages: {list(errors)}")
 
 def validate_index(service_name, subscription_id, resource_group, index_name):
-    api_version = "2021-04-30-Preview"
+    api_version = "2023-07-01-Preview"
     admin_key = json.loads(
         subprocess.run(
             f"az search admin-key show --subscription {subscription_id} --resource-group {resource_group} --service-name {service_name}",
