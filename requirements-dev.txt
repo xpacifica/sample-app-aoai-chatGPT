@@ -9,7 +9,8 @@ bs4==0.0.1
 urllib3==2.0.6
 pytest==7.4.0
 azure-storage-blob
-azure-storage-blob azure-identity
+azure-storage-blob 
+azure-identity
 azure-ai
 azure-ai-ml
 azure-search
